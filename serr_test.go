@@ -7,8 +7,28 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
+
+type attributed struct {
+	id uuid.UUID
+}
+
+func (a *attributed) Attributes(attrs ...Attr) []Attr {
+	return append(attrs, UUID("id", a.id))
+}
+
+func TestAttributed(t *testing.T) {
+	req := require.New(t)
+
+	id := uuid.New()
+	var a Attributed = &attributed{id: id}
+	req.Equal([]Attr{UUID("id", id)}, a.Attributes())
+
+	err := New("dummy error", a.Attributes(String("attr", "abcd"))...)
+	req.Equal("dummy error attr=abcd id="+id.String(), err.Error())
+}
 
 func TestErrorAttributes(t *testing.T) {
 	req := require.New(t)

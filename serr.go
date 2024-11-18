@@ -98,6 +98,11 @@ type Attr struct {
 	value interface{}
 }
 
+// Attributed provides custom attributes for structured errors.
+type Attributed interface {
+	Attributes(...Attr) []Attr
+}
+
 // String is a string-valued attribute.
 func String(key, value string) Attr { return Attr{key: key, value: value} }
 
