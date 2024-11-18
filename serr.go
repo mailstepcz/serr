@@ -15,17 +15,19 @@ import (
 
 type serror struct {
 	msg   string
-	attrs []Attr
+	attrs []Attributed
 }
 
 func (se *serror) Error() string {
 	var sb strings.Builder
 	sb.WriteString(se.msg)
 	for _, attr := range se.attrs {
-		sb.WriteByte(' ')
-		sb.WriteString(attr.key)
-		sb.WriteByte('=')
-		fmt.Fprintf(&sb, "%v", attr.value)
+		for _, attr := range attr.Attributes() {
+			sb.WriteByte(' ')
+			sb.WriteString(attr.key)
+			sb.WriteByte('=')
+			fmt.Fprintf(&sb, "%v", attr.value)
+		}
 	}
 	return sb.String()
 }
@@ -33,7 +35,7 @@ func (se *serror) Error() string {
 type wrapped struct {
 	msg   string
 	err   error
-	attrs []Attr
+	attrs []Attributed
 }
 
 func (se *wrapped) message() string {
@@ -47,10 +49,12 @@ func (se *wrapped) Error() string {
 	var sb strings.Builder
 	sb.WriteString(se.message())
 	for _, attr := range se.attrs {
-		sb.WriteByte(' ')
-		sb.WriteString(attr.key)
-		sb.WriteByte('=')
-		fmt.Fprintf(&sb, "%v", attr.value)
+		for _, attr := range attr.Attributes() {
+			sb.WriteByte(' ')
+			sb.WriteString(attr.key)
+			sb.WriteByte('=')
+			fmt.Fprintf(&sb, "%v", attr.value)
+		}
 	}
 	return sb.String()
 }
@@ -62,7 +66,7 @@ func (se *wrapped) Unwrap() error {
 type wrappedMulti struct {
 	msg   string
 	errs  []error
-	attrs []Attr
+	attrs []Attributed
 }
 
 func (se *wrappedMulti) message() string {
@@ -80,10 +84,12 @@ func (se *wrappedMulti) Error() string {
 	var sb strings.Builder
 	sb.WriteString(se.message())
 	for _, attr := range se.attrs {
-		sb.WriteByte(' ')
-		sb.WriteString(attr.key)
-		sb.WriteByte('=')
-		fmt.Fprintf(&sb, "%v", attr.value)
+		for _, attr := range attr.Attributes() {
+			sb.WriteByte(' ')
+			sb.WriteString(attr.key)
+			sb.WriteByte('=')
+			fmt.Fprintf(&sb, "%v", attr.value)
+		}
 	}
 	return sb.String()
 }
@@ -92,15 +98,20 @@ func (se *wrappedMulti) Unwrap() []error {
 	return se.errs
 }
 
+// Attributed provides custom attributes for structured errors.
+type Attributed interface {
+	Attributes() []Attr
+}
+
 // Attr is a named attribute associated with an error.
 type Attr struct {
 	key   string
 	value interface{}
 }
 
-// Attributed provides custom attributes for structured errors.
-type Attributed interface {
-	Attributes(...Attr) []Attr
+// Attributes returns the attribute as a slice in order to conform to [Attributed].
+func (a Attr) Attributes() []Attr {
+	return []Attr{a}
 }
 
 // String is a string-valued attribute.
@@ -122,17 +133,17 @@ func Error(key string, value error) Attr { return Attr{key: key, value: value} }
 func Any(key string, value interface{}) Attr { return Attr{key: key, value: value} }
 
 // New returns a new structured error.
-func New(msg string, attrs ...Attr) error {
+func New(msg string, attrs ...Attributed) error {
 	return &serror{msg: msg, attrs: attrs}
 }
 
 // Wrap returns a new structured error which wraps the provided error.
-func Wrap(msg string, err error, attrs ...Attr) error {
+func Wrap(msg string, err error, attrs ...Attributed) error {
 	return &wrapped{msg: msg, err: err, attrs: attrs}
 }
 
 // WrapMulti returns a new structured error which wraps the provided errors.
-func WrapMulti(msg string, errs []error, attrs ...Attr) error {
+func WrapMulti(msg string, errs []error, attrs ...Attributed) error {
 	return &wrappedMulti{msg: msg, errs: errs, attrs: attrs}
 }
 
@@ -170,22 +181,24 @@ func Log(ctx context.Context, logger *slog.Logger, level slog.Level, err error) 
 	}
 }
 
-func attrsToSlog(errAttrs []Attr) []interface{} {
+func attrsToSlog(errAttrs []Attributed) []interface{} {
 	attrs := make([]interface{}, 0, len(errAttrs))
 	for _, attr := range errAttrs {
-		switch val := attr.value.(type) {
-		case string:
-			attrs = append(attrs, slog.String(attr.key, val))
-		case int:
-			attrs = append(attrs, slog.Int(attr.key, val))
-		case uuid.UUID:
-			attrs = append(attrs, slog.String(attr.key, val.String()))
-		case time.Time:
-			attrs = append(attrs, slog.Time(attr.key, val))
-		case error:
-			attrs = append(attrs, slog.String(attr.key, val.Error()))
-		default:
-			attrs = append(attrs, slog.Any(attr.key, val))
+		for _, attr := range attr.Attributes() {
+			switch val := attr.value.(type) {
+			case string:
+				attrs = append(attrs, slog.String(attr.key, val))
+			case int:
+				attrs = append(attrs, slog.Int(attr.key, val))
+			case uuid.UUID:
+				attrs = append(attrs, slog.String(attr.key, val.String()))
+			case time.Time:
+				attrs = append(attrs, slog.Time(attr.key, val))
+			case error:
+				attrs = append(attrs, slog.String(attr.key, val.Error()))
+			default:
+				attrs = append(attrs, slog.Any(attr.key, val))
+			}
 		}
 	}
 	return attrs
