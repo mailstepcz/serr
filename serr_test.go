@@ -24,7 +24,8 @@ func TestAttributed(t *testing.T) {
 
 	id := uuid.New()
 	var a Attributed = &attributed{id: id}
-	req.Equal([]Attr{UUID("id", id), Int("num", 1234)}, a.Attributes())
+
+  req.Equal([]Attr{UUID("id", id), Int("num", 1234)}, a.Attributes())
 
 	err := New("dummy error", String("attr", "abcd"), a)
 	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234", err.Error())
