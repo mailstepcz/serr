@@ -5,11 +5,13 @@ package serr
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/fealsamh/go-utils/nocopy"
 	"github.com/google/uuid"
 )
 
@@ -197,9 +199,23 @@ func attrsToSlog(errAttrs []Attributed) []interface{} {
 			case error:
 				attrs = append(attrs, slog.String(attr.key, val.Error()))
 			default:
-				attrs = append(attrs, slog.Any(attr.key, val))
+				if logstr, ok := logString(val); ok {
+					attrs = append(attrs, slog.String(attr.key, logstr))
+				} else {
+					attrs = append(attrs, slog.Any(attr.key, val))
+				}
 			}
 		}
 	}
 	return attrs
+}
+
+func logString(val interface{}) (string, bool) {
+	if logval, ok := val.(Loggable); ok {
+		return logval.LogString(), true
+	} else if b, err := json.MarshalIndent(val, "", " "); err != nil {
+		return "", false
+	} else {
+		return nocopy.String(b), true
+	}
 }

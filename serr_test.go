@@ -25,7 +25,7 @@ func TestAttributed(t *testing.T) {
 	id := uuid.New()
 	var a Attributed = &attributed{id: id}
 
-  req.Equal([]Attr{UUID("id", id), Int("num", 1234)}, a.Attributes())
+	req.Equal([]Attr{UUID("id", id), Int("num", 1234)}, a.Attributes())
 
 	err := New("dummy error", String("attr", "abcd"), a)
 	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234", err.Error())
@@ -38,19 +38,21 @@ func TestErrorAttributes(t *testing.T) {
 	req.Equal("msg a=1 b=2", err.Error())
 }
 
+type custom struct {
+	Data string
+}
+
+func (c *custom) LogString() string { return "custom: " + c.Data }
+
 func TestAnyAttributes(t *testing.T) {
 	req := require.New(t)
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 
-	type custom struct {
-		Data string
-	}
-
-	err := New("msg", Any("attr", custom{Data: "data"}))
+	err := New("msg", Any("attr", &custom{Data: "data"}))
 	LogError(context.Background(), logger, err)
-	req.Contains(buf.String(), `"level":"ERROR","msg":"msg","attr":{"Data":"data"}}`)
+	req.Contains(buf.String(), `"level":"ERROR","msg":"msg","attr":"custom: data"`)
 }
 
 func TestWrappedErrors(t *testing.T) {
@@ -83,6 +85,32 @@ func TestWrappedErrors(t *testing.T) {
 		err := Wrap("", ErrSome, String("a", "1"), String("b", "2"))
 		req.True(errors.Is(err, ErrSome))
 	})
+}
+
+type object1 struct {
+	Data string
+}
+
+func (obj *object1) LogString() string { return "log string: " + obj.Data }
+
+type object2 struct {
+	Data string
+}
+
+func TestLogString(t *testing.T) {
+	req := require.New(t)
+
+	obj1 := &object1{"OBJ1"}
+	logstr, ok := logString(obj1)
+	req.True(ok)
+	req.Equal(logstr, "log string: OBJ1")
+
+	obj2 := &object2{"OBJ2"}
+	logstr, ok = logString(obj2)
+	req.True(ok)
+	req.Equal(logstr, `{
+ "Data": "OBJ2"
+}`)
 }
 
 var gr interface{}
