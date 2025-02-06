@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +29,11 @@ func (se *serror) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -55,7 +60,11 @@ func (se *wrapped) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -90,7 +99,11 @@ func (se *wrappedMulti) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -211,6 +224,19 @@ func attrsToSlog(errAttrs []Attributed) []interface{} {
 }
 
 func logString(val interface{}) (string, bool) {
+	switch val := val.(type) {
+	case string:
+		return val, true
+	case int:
+		return strconv.Itoa(val), true
+	case uuid.UUID:
+		return val.String(), true
+	case time.Time:
+		return val.String(), true
+	case error:
+		return val.Error(), true
+	}
+
 	if logval, ok := val.(Loggable); ok {
 		return logval.LogString(), true
 	} else if b, err := json.MarshalIndent(val, "", " "); err != nil {
