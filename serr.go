@@ -239,9 +239,11 @@ func logString(val interface{}) (string, bool) {
 
 	if logval, ok := val.(Loggable); ok {
 		return logval.LogString(), true
-	} else if b, err := json.MarshalIndent(val, "", " "); err != nil {
-		return "", false
-	} else {
-		return nocopy.String(b), true
 	}
+
+	b, err := json.MarshalIndent(val, "", " ")
+	if err != nil {
+		return "", false
+	}
+	return nocopy.String(b), true
 }
