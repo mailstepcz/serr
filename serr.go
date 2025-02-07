@@ -5,11 +5,14 @@ package serr
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/fealsamh/go-utils/nocopy"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +29,11 @@ func (se *serror) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -53,7 +60,11 @@ func (se *wrapped) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -88,7 +99,11 @@ func (se *wrappedMulti) Error() string {
 			sb.WriteByte(' ')
 			sb.WriteString(attr.key)
 			sb.WriteByte('=')
-			fmt.Fprintf(&sb, "%v", attr.value)
+			if logstr, ok := logString(attr.value); ok {
+				sb.WriteString(logstr)
+			} else {
+				fmt.Fprintf(&sb, "%v", attr.value)
+			}
 		}
 	}
 	return sb.String()
@@ -197,9 +212,38 @@ func attrsToSlog(errAttrs []Attributed) []interface{} {
 			case error:
 				attrs = append(attrs, slog.String(attr.key, val.Error()))
 			default:
-				attrs = append(attrs, slog.Any(attr.key, val))
+				if logstr, ok := logString(val); ok {
+					attrs = append(attrs, slog.String(attr.key, logstr))
+				} else {
+					attrs = append(attrs, slog.Any(attr.key, val))
+				}
 			}
 		}
 	}
 	return attrs
+}
+
+func logString(val interface{}) (string, bool) {
+	switch val := val.(type) {
+	case string:
+		return val, true
+	case int:
+		return strconv.Itoa(val), true
+	case uuid.UUID:
+		return val.String(), true
+	case time.Time:
+		return val.String(), true
+	case error:
+		return val.Error(), true
+	}
+
+	if logval, ok := val.(Loggable); ok {
+		return logval.LogString(), true
+	}
+
+	b, err := json.MarshalIndent(val, "", " ")
+	if err != nil {
+		return "", false
+	}
+	return nocopy.String(b), true
 }
