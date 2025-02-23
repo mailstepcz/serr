@@ -1,2 +1,2 @@
 # serr
-This package provides structured errors, which mesh well with the `slog` package.
+This package provides attributed errors, which mesh well with the `slog` package.
