@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fealsamh/go-utils/nocopy"
+	"github.com/mailstepcz/go-utils/nocopy"
 	"github.com/google/uuid"
 )
 
