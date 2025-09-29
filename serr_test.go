@@ -16,7 +16,7 @@ type attributed struct {
 }
 
 func (a *attributed) Attributes() []Attr {
-	return []Attr{UUID("id", a.id), Int("num", 1234)}
+	return []Attr{UUID("id", a.id), Int("num", 1234), Uint("wheels", 3)}
 }
 
 func TestAttributed(t *testing.T) {
@@ -25,10 +25,10 @@ func TestAttributed(t *testing.T) {
 	id := uuid.New()
 	var a Attributed = &attributed{id: id}
 
-	req.Equal([]Attr{UUID("id", id), Int("num", 1234)}, a.Attributes())
+	req.Equal([]Attr{UUID("id", id), Int("num", 1234), Uint("wheels", 3)}, a.Attributes())
 
 	err := New("dummy error", String("attr", "abcd"), a)
-	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234", err.Error())
+	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234 wheels=3", err.Error())
 }
 
 func TestErrorAttributes(t *testing.T) {
