@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mailstepcz/go-utils/nocopy"
 	"github.com/google/uuid"
+	"github.com/mailstepcz/go-utils/nocopy"
 )
 
 type serror struct {
@@ -152,6 +152,9 @@ func New(msg string, attrs ...Attributed) error {
 	return &serror{msg: msg, attrs: attrs}
 }
 
+// Uint is an unsigned integer-valued attribute.
+func Uint(key string, value uint) Attr { return Attr{key: key, value: value} }
+
 // Wrap returns a new structured error which wraps the provided error.
 func Wrap(msg string, err error, attrs ...Attributed) error {
 	return &wrapped{msg: msg, err: err, attrs: attrs}
@@ -229,6 +232,8 @@ func logString(val interface{}) (string, bool) {
 		return val, true
 	case int:
 		return strconv.Itoa(val), true
+	case uint:
+		return strconv.FormatUint(uint64(val), 10), true
 	case uuid.UUID:
 		return val.String(), true
 	case time.Time:
