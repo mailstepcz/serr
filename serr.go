@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mailstepcz/go-utils/nocopy"
+	"github.com/oklog/ulid/v2"
 )
 
 type serror struct {
@@ -135,8 +136,11 @@ func String(key, value string) Attr { return Attr{key: key, value: value} }
 // Int is an integer-valued attribute.
 func Int(key string, value int) Attr { return Attr{key: key, value: value} }
 
-// UUID is a uuid-valued attribute.
+// UUID is an uuid-valued attribute.
 func UUID(key string, value uuid.UUID) Attr { return Attr{key: key, value: value} }
+
+// ULID is and ULID-valued attribute.
+func ULID(key string, value ulid.ULID) Attr { return Attr{key: key, value: value} }
 
 // Time is a time-valued attribute.
 func Time(key string, value time.Time) Attr { return Attr{key: key, value: value} }
