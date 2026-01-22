@@ -214,6 +214,8 @@ func attrsToSlog(errAttrs []Attributed) []interface{} {
 				attrs = append(attrs, slog.Int(attr.key, val))
 			case uuid.UUID:
 				attrs = append(attrs, slog.String(attr.key, val.String()))
+			case ulid.ULID:
+				attrs = append(attrs, slog.String(attr.key, val.String()))
 			case time.Time:
 				attrs = append(attrs, slog.Time(attr.key, val))
 			case error:
@@ -239,6 +241,8 @@ func logString(val interface{}) (string, bool) {
 	case uint:
 		return strconv.FormatUint(uint64(val), 10), true
 	case uuid.UUID:
+		return val.String(), true
+	case ulid.ULID:
 		return val.String(), true
 	case time.Time:
 		return val.String(), true
