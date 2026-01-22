@@ -139,7 +139,7 @@ func Int(key string, value int) Attr { return Attr{key: key, value: value} }
 // UUID is an uuid-valued attribute.
 func UUID(key string, value uuid.UUID) Attr { return Attr{key: key, value: value} }
 
-// ULID is and ULID-valued attribute.
+// ULID is an ULID-valued attribute.
 func ULID(key string, value ulid.ULID) Attr { return Attr{key: key, value: value} }
 
 // Time is a time-valued attribute.
