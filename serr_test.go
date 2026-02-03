@@ -6,29 +6,34 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 )
 
 type attributed struct {
-	id uuid.UUID
+	id     uuid.UUID
+	ulidID ulid.ULID
 }
 
 func (a *attributed) Attributes() []Attr {
-	return []Attr{UUID("id", a.id), Int("num", 1234), Uint("wheels", 3)}
+	return []Attr{UUID("id", a.id), Int("num", 1234), Uint("wheels", 3), ULID("ulidID", a.ulidID)}
 }
 
 func TestAttributed(t *testing.T) {
 	req := require.New(t)
 
 	id := uuid.New()
-	var a Attributed = &attributed{id: id}
+	ulidID, err := ulid.New(uint64(time.Now().UnixMilli()), ulid.DefaultEntropy())
+	req.NoError(err)
+	var a Attributed = &attributed{id: id, ulidID: ulidID}
 
-	req.Equal([]Attr{UUID("id", id), Int("num", 1234), Uint("wheels", 3)}, a.Attributes())
+	req.Equal([]Attr{UUID("id", id), Int("num", 1234), Uint("wheels", 3), ULID("ulidID", ulidID)}, a.Attributes())
 
-	err := New("dummy error", String("attr", "abcd"), a)
-	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234 wheels=3", err.Error())
+	err = New("dummy error", String("attr", "abcd"), a)
+	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234 wheels=3 ulidID="+ulidID.String(), err.Error())
 }
 
 func TestErrorAttributes(t *testing.T) {
