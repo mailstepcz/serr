@@ -40,6 +40,17 @@ func (se *serror) Error() string {
 	return sb.String()
 }
 
+// Wrapper matches errors that wrap a single underlying error.
+type Wrapper interface {
+	Unwrap() error
+}
+
+// MultiWrapper matches errors that wrap multiple underlying errors,
+// such as those returned by errors.Join or WrapMulti.
+type MultiWrapper interface {
+	Unwrap() []error
+}
+
 type wrapped struct {
 	msg   string
 	err   error
@@ -260,3 +271,8 @@ func logString(val interface{}) (string, bool) {
 	}
 	return nocopy.String(b), true
 }
+
+var (
+	_ Wrapper      = new(wrapped)
+	_ MultiWrapper = new(wrappedMulti)
+)

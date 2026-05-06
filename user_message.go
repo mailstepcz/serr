@@ -1,7 +1,6 @@
 package serr
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -27,16 +26,40 @@ func WithUserMessage(err error, userMsg string) error {
 	return &userMessage{err: err, userMsg: userMsg}
 }
 
-// ExtractUserMessage walks the error chain and joins user messages.
+// ExtractUserMessage walks the error tree and joins all user messages,
+// outermost first. Both single- and multi-error wrappers are traversed.
 func ExtractUserMessage(err error) string {
 	var msgs []string
-	for e := err; e != nil; e = errors.Unwrap(e) {
+	walkErrors(err, func(e error) {
 		if um, ok := e.(UserMessager); ok && len(um.UserMessage()) > 0 {
 			msgs = append(msgs, um.UserMessage())
 		}
-	}
+	})
 	if len(msgs) == 0 {
 		return ""
 	}
 	return strings.Join(msgs, ": ")
 }
+
+// walkErrors visits err and every error reachable through Wrapper or
+// MultiWrapper, in a pre-order traversal. errors.Unwrap does not descend
+// into MultiWrapper, which is why this helper is needed.
+func walkErrors(err error, visit func(error)) {
+	if err == nil {
+		return
+	}
+	visit(err)
+	switch e := err.(type) {
+	case Wrapper:
+		walkErrors(e.Unwrap(), visit)
+	case MultiWrapper:
+		for _, inner := range e.Unwrap() {
+			walkErrors(inner, visit)
+		}
+	}
+}
+
+var (
+	_ Wrapper      = new(userMessage)
+	_ UserMessager = new(userMessage)
+)

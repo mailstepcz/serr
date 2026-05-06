@@ -83,4 +83,35 @@ func TestExtractUserMessage(t *testing.T) {
 		l2 := Wrap("svc l2", l1)
 		req.Equal("Domain message", ExtractUserMessage(l2))
 	})
+
+	t.Run("user message inside WrapMulti", func(t *testing.T) {
+		req := require.New(t)
+		domain := WithUserMessage(errors.New("inner"), "Domain message")
+		multi := WrapMulti("aggregated", []error{errors.New("a"), domain})
+		req.Equal("Domain message", ExtractUserMessage(multi))
+	})
+
+	t.Run("user message inside errors.Join", func(t *testing.T) {
+		req := require.New(t)
+		domain := WithUserMessage(errors.New("inner"), "Domain message")
+		joined := errors.Join(errors.New("a"), domain)
+		req.Equal("Domain message", ExtractUserMessage(joined))
+	})
+
+	t.Run("user message under multi inside Wrap", func(t *testing.T) {
+		req := require.New(t)
+		domain := WithUserMessage(errors.New("inner"), "Domain message")
+		multi := WrapMulti("aggregated", []error{domain})
+		outer := Wrap("svc", multi)
+		req.Equal("Domain message", ExtractUserMessage(outer))
+	})
+
+	t.Run("multiple user messages across multi branches", func(t *testing.T) {
+		req := require.New(t)
+		a := WithUserMessage(errors.New("ea"), "Branch A")
+		b := WithUserMessage(errors.New("eb"), "Branch B")
+		multi := WrapMulti("aggregated", []error{a, b})
+		outer := WithUserMessage(multi, "Outer summary")
+		req.Equal("Outer summary: Branch A: Branch B", ExtractUserMessage(outer))
+	})
 }
