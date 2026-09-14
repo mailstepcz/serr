@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/mailstepcz/go-utils/nocopy"
 	"github.com/oklog/ulid/v2"
 )
@@ -147,8 +147,8 @@ func String(key, value string) Attr { return Attr{key: key, value: value} }
 // Int is an integer-valued attribute.
 func Int(key string, value int) Attr { return Attr{key: key, value: value} }
 
-// UUID is an uuid-valued attribute.
-func UUID(key string, value uuid.UUID) Attr { return Attr{key: key, value: value} }
+// UUID is an uuid-valued attribute. It accepts any uuid representation, including the legacy google one.
+func UUID[T ~[16]byte](key string, value T) Attr { return Attr{key: key, value: uuid.UUID(value)} }
 
 // ULID is an ULID-valued attribute.
 func ULID(key string, value ulid.ULID) Attr { return Attr{key: key, value: value} }
