@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,10 +27,7 @@ func ToGRPC(err error) error {
 	case errors.Is(err, sql.ErrNoRows):
 		return status.Error(codes.NotFound, msg)
 
-	case uuid.IsInvalidLengthError(err):
-		return status.Error(codes.InvalidArgument, msg)
-
-	case msg == "invalid UUID format":
+	case isInvalidUUIDMessage(msg):
 		return status.Error(codes.InvalidArgument, msg)
 	}
 
@@ -40,4 +37,9 @@ func ToGRPC(err error) error {
 	}
 
 	return status.Error(codes.Internal, msg)
+}
+
+// isInvalidUUIDMessage reports whether the message comes from a failed uuid parse.
+func isInvalidUUIDMessage(msg string) bool {
+	return msg == "invalid uuid" || strings.HasPrefix(msg, "invalid UUID")
 }

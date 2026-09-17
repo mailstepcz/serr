@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"uuid"
+
+	googleuuid "github.com/google/uuid"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +27,7 @@ func (a *attributed) Attributes() []Attr {
 func TestAttributed(t *testing.T) {
 	req := require.New(t)
 
-	id := uuid.New()
+	id := uuid.NewV7()
 	ulidID, err := ulid.New(uint64(time.Now().UnixMilli()), ulid.DefaultEntropy())
 	req.NoError(err)
 	var a Attributed = &attributed{id: id, ulidID: ulidID}
@@ -34,6 +36,35 @@ func TestAttributed(t *testing.T) {
 
 	err = New("dummy error", String("attr", "abcd"), a)
 	req.Equal("dummy error attr=abcd id="+id.String()+" num=1234 wheels=3 ulidID="+ulidID.String(), err.Error())
+}
+
+func TestAttributedUUIDTypes(t *testing.T) {
+	req := require.New(t)
+
+	id := uuid.NewV7()
+	// callers still on github.com/google/uuid must keep working during the stdlib migration
+	google := googleuuid.UUID(id)
+
+	req.Equal(UUID("id", id), UUID("id", google))
+
+	req.Equal("dummy error id="+id.String(), New("dummy error", UUID("id", id)).Error())
+	req.Equal("dummy error id="+id.String(), New("dummy error", UUID("id", google)).Error())
+}
+
+func TestAttributedUUIDTypesSlog(t *testing.T) {
+	id := uuid.NewV7()
+
+	for name, attr := range map[string]Attr{"stdlib": UUID("id", id), "google": UUID("id", googleuuid.UUID(id))} {
+		t.Run(name, func(t *testing.T) {
+			req := require.New(t)
+			ctx := t.Context()
+
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			LogError(ctx, logger, New("msg", attr))
+			req.Contains(buf.String(), `"id":"`+id.String()+`"`)
+		})
+	}
 }
 
 func TestErrorAttributes(t *testing.T) {
