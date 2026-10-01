@@ -10,7 +10,7 @@ type, so `errors.Is(err, context.Canceled)` alone misses most real cases:
 | Boundary | Error returned | caught by `errors.Is(err, context.Canceled)` |
 | --- | --- | --- |
 | outbound gRPC call | `*status.Error` with `codes.Canceled` | **no** |
-| Postgres, server cancels the statement | `*pgconn.PgError`, SQLSTATE `57014` | **no** |
+| Postgres, server cancels the statement | `*pgconn.PgError` (pgx) or `*pq.Error` (lib/pq), SQLSTATE `57014` | **no** |
 | Postgres, driver aborts first | `context.Canceled` | yes |
 | HTTP client | `*url.Error` | yes |
 | AWS SDK / smithy | `*smithy.OperationError` | yes |
