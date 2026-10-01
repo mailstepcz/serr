@@ -1,6 +1,7 @@
 package serr
 
 import (
+	"errors"
 	"strings"
 )
 
@@ -24,6 +25,14 @@ func WithUserMessage(err error, userMsg string) error {
 		return nil
 	}
 	return &userMessage{err: err, userMsg: userMsg}
+}
+
+// WithUserMessageIf wraps err with userMsg when errors.Is(err, target), otherwise returns err unchanged.
+func WithUserMessageIf(err, target error, userMsg string) error {
+	if !errors.Is(err, target) {
+		return err
+	}
+	return WithUserMessage(err, userMsg)
 }
 
 // ExtractUserMessage walks the error tree and joins all user messages,
