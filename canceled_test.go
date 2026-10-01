@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,6 +65,21 @@ func TestIsCanceled(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "lib/pq query_canceled SQLSTATE",
+			err:  &pq.Error{Code: pgerrcode.QueryCanceled},
+			want: true,
+		},
+		{
+			name: "wrapped lib/pq query_canceled SQLSTATE",
+			err:  Wrap("listing complaints", &pq.Error{Code: pgerrcode.QueryCanceled}),
+			want: true,
+		},
+		{
+			name: "lib/pq error with another SQLSTATE",
+			err:  Wrap("listing complaints", &pq.Error{Code: pgerrcode.DeadlockDetected}),
+			want: false,
+		},
+		{
 			name: "postgres error with another SQLSTATE",
 			err:  Wrap("listing timelogs", &pgconn.PgError{Code: pgerrcode.DeadlockDetected}),
 			want: false,
@@ -101,6 +117,10 @@ func TestIsCanceledCoversWhatErrorsIsMisses(t *testing.T) {
 		{
 			name: "postgres query_canceled SQLSTATE",
 			err:  &pgconn.PgError{Code: pgerrcode.QueryCanceled},
+		},
+		{
+			name: "lib/pq query_canceled SQLSTATE",
+			err:  &pq.Error{Code: pgerrcode.QueryCanceled},
 		},
 	}
 
