@@ -45,6 +45,56 @@ func TestWithUserMessage(t *testing.T) {
 	})
 }
 
+func TestWithUserMessageIf(t *testing.T) {
+	sentinel := errors.New("sentinel")
+
+	t.Run("matching sentinel gets the user message", func(t *testing.T) {
+		req := require.New(t)
+		err := WithUserMessageIf(Wrap("doing", sentinel), sentinel, "Not found.")
+		req.Equal("Not found.", ExtractUserMessage(err))
+		req.ErrorIs(err, sentinel)
+	})
+
+	t.Run("error string is unchanged", func(t *testing.T) {
+		req := require.New(t)
+		base := Wrap("doing", sentinel)
+		req.Equal(base.Error(), WithUserMessageIf(base, sentinel, "Not found.").Error())
+	})
+
+	t.Run("other error is returned unchanged", func(t *testing.T) {
+		req := require.New(t)
+		base := Wrap("doing", errors.New("other"))
+		req.Same(base, WithUserMessageIf(base, sentinel, "Not found."))
+		req.Empty(ExtractUserMessage(base))
+	})
+
+	t.Run("nil error returns nil", func(t *testing.T) {
+		req := require.New(t)
+		req.NoError(WithUserMessageIf(nil, sentinel, "Not found."))
+	})
+
+	t.Run("nil target never matches", func(t *testing.T) {
+		req := require.New(t)
+		base := Wrap("doing", sentinel)
+		req.Same(base, WithUserMessageIf(base, nil, "Not found."))
+	})
+
+	t.Run("sentinel inside errors.Join matches", func(t *testing.T) {
+		req := require.New(t)
+		err := WithUserMessageIf(errors.Join(sentinel, errors.New("driver")), sentinel, "Not found.")
+		req.Equal("Not found.", ExtractUserMessage(err))
+	})
+
+	t.Run("chained calls attach only the matching message", func(t *testing.T) {
+		req := require.New(t)
+		other := errors.New("other")
+		err := Wrap("doing", sentinel)
+		err = WithUserMessageIf(err, other, "Other.")
+		err = WithUserMessageIf(err, sentinel, "Not found.")
+		req.Equal("Not found.", ExtractUserMessage(err))
+	})
+}
+
 func TestExtractUserMessage(t *testing.T) {
 	t.Run("plain error returns empty", func(t *testing.T) {
 		req := require.New(t)
